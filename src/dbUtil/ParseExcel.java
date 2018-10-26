@@ -13,6 +13,14 @@ class ParseExcel {
 
     ArrayList excelText(String workbook) throws IOException {
 
+        int rowLength = 0;
+
+        if (workbook.contains("NEW")) {
+            rowLength = 11;
+        }else if (workbook.contains("USED")){
+            rowLength = 10;
+        }
+
         // Rows from row 8 (actually 9) and below
         StringBuilder sbLotInfo = new StringBuilder();
 
@@ -34,8 +42,9 @@ class ParseExcel {
                 // otherwise use a which statement
                 cell.setCellType(CellType.STRING);
 
+                // Start taking from 2nd column in and 8th row down
                 if (cell.getColumnIndex() >= 2 && cell.getRowIndex() >= 8) {
-                    if (cellCount < 11){
+                    if (cellCount < rowLength){
                         sbLotInfo.append(cell.getStringCellValue()).append(" ");
                     }else {
                         sbLotInfo.append(cell.getStringCellValue()).append("\n");
@@ -46,7 +55,6 @@ class ParseExcel {
                 }
             }
         }
-        //System.out.print(sbLotInfo.toString());
         return lotInfo;
     }
 }
