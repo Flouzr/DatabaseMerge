@@ -22,7 +22,7 @@ class CompareDatabase extends SQLDatabase {
             // Put the new/updated database into an ArrayList
             updatedDB = parseExcel.excelText(updatedWorkbook);
             // Take the existing SQL and make Vehicle objects for each
-            originalVehicles = getVehicles();
+            originalVehicles = getAllVehicles();
             for (String dataPoint : updatedDB){
                 // Split and format each line (all vehicle info per line [make, model, yr, etc]
                 // into its own seperate List that will be used to create another List of

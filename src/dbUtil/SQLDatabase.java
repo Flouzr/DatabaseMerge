@@ -101,10 +101,49 @@ public class SQLDatabase {
         return false;
     }
 
-    public List getVehicles() {
+    public void updateVehiclePosition(String vehicleID, String x_pos, String y_pos) {
+        String sql = "UPDATE " + workingDatabase + " SET x_pos = (?), y_pos = (?) WHERE (vehicle_id) = (?)";
+
+        updateVehicle(vehicleID, y_pos, x_pos, sql);
+    }
+
+    public void updateVehicleSize (String vehicleID, String width, String height) {
+        String sql = "UPDATE " + workingDatabase + " SET width = (?), height = (?) WHERE (vehicle_id) = (?)";
+
+        updateVehicle(vehicleID, width, height, sql);
+    }
+
+    private void updateVehicle(String vehicleID, String arg1, String arg2, String sql) {
+        try (PreparedStatement ps = CONN.prepareStatement(sql)){
+
+            ps.setString(1, arg2);
+            ps.setString(2, arg1);
+            ps.setString(3, vehicleID);
+
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List getSingleVehicle(String vehicleID) {
+        String sql = "SELECT * FROM " + workingDatabase + " WHERE (vehicle_id) = '" + vehicleID + "'";
+
+        List<Vehicle> temp = new ArrayList<>();
+        getVehicle(sql, temp);
+        return temp;
+    }
+
+    public List getAllVehicles() {
         String sql = "SELECT * FROM " + workingDatabase;
 
         List<Vehicle> temp = new ArrayList<>();
+        getVehicle(sql, temp);
+        return temp;
+    }
+
+    private void getVehicle(String sql, List<Vehicle> temp) {
         try (PreparedStatement ps = CONN.prepareStatement(sql)) {
 
             ResultSet resultSet = ps.executeQuery();
@@ -116,13 +155,16 @@ public class SQLDatabase {
                         resultSet.getString(3),
                         resultSet.getString(4),
                         resultSet.getString(5),
-                        resultSet.getString(6)));
+                        resultSet.getString(6),
+                        resultSet.getString(7),
+                        resultSet.getString(8),
+                        resultSet.getString(9),
+                        resultSet.getString(10)));
             }
             resultSet.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return temp;
     }
 
     public void delete (String removeValue) {
