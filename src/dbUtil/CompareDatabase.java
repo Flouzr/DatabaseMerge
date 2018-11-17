@@ -55,7 +55,7 @@ class CompareDatabase extends SQLDatabase {
         List<String> removeThese = new ArrayList<>();
         List<String> addThese = new ArrayList<>();
 
-        // If a new vehicle isn't in the OG list add it
+        // If a new vehicle isn't in the original list add it
         for (Vehicle newVehicle : updatedVehicles){
             if (!searchForVehicle(newVehicle.getVehicleID(), originalVehicles)){
                 addThese.add(newVehicle.getVehicleID());
@@ -64,7 +64,7 @@ class CompareDatabase extends SQLDatabase {
         }
         System.out.println("Old vehicles deleted from database");
 
-        // If an OG vehicle isn't in the new list remove it
+        // If an original vehicle isn't in the new list remove it
         for (Vehicle ogVehicle : originalVehicles){
             if (!searchForVehicle(ogVehicle.getVehicleID(), updatedVehicles)) {
                 removeThese.add(ogVehicle.getVehicleID());

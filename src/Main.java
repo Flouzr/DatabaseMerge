@@ -1,40 +1,19 @@
-import dbUtil.SQLDatabase;
-import dbUtil.Vehicle;
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
-import java.util.List;
+public class Main extends Application {
 
-public class Main
-{
-
+    @Override
+    public void start(Stage primaryStage) throws Exception{
+        Parent root = FXMLLoader.load(getClass().getResource("/layout/lot_database_layout.fxml"));
+        primaryStage.setTitle("Automotive Lot Inventory Adjustable Management System");
+        primaryStage.setScene(new Scene(root));
+        primaryStage.show();
+    }
     public static void main(String[] args) {
-        SQLDatabase sqlDatabaseNew = new SQLDatabase("newlotdatabase");
-//        sqlDatabaseNew.xlsxToSQL("CDJR NEW 8.31.18.xlsx");
-//        sqlDatabaseNew.difference("CDJR NEW 9.24.18.xlsx");
-
-        SQLDatabase sqlDatabaseUsed = new SQLDatabase("usedlotdatabase");
-//        sqlDatabaseUsed.xlsxToSQL("CDJR USED 8.31.xlsx");
-//        sqlDatabaseUsed.difference("CDJR USED 9.24.xlsx");
-
-
-        // Below is just testing to make sure everything is working as expected
-        List<Vehicle> test = sqlDatabaseNew.getAllVehicles();
-
-        if (sqlDatabaseNew.search("AD6295")){
-            System.out.println("FOUND");
-        } else {
-            System.out.println(" NOT FOUND");
-        }
-
-        for (Vehicle veh : test){
-            System.out.println(veh.getVehicleID());
-        }
-
-        sqlDatabaseNew.updateVehiclePosition("AD6295", "5", "3");
-        sqlDatabaseNew.updateVehicleSize("AD6295", "10", "20");
-
-        List<Vehicle> temp = sqlDatabaseNew.getSingleVehicle("AD6295");
-        for (Vehicle veh : temp){
-            System.out.println(veh.toString());
-        }
+        launch(args);
     }
 }

@@ -26,6 +26,7 @@ public class SQLDatabase {
         compare.difference(updatedWorkbook);
     }
 
+    // Take a spreadsheet and puts transforms it into a format for the database
     public void xlsxToSQL(String workbook) {
         WRKBK = workbook;
         ParseExcel parseExcel = new ParseExcel();
@@ -33,6 +34,7 @@ public class SQLDatabase {
         try {
             excelLotInfo = parseExcel.excelText(WRKBK);
 
+            // Take the array excel info and put it into Vehicle format
             for (String dataPoint : excelLotInfo){
                 dataPoint = dataPoint.replaceAll("Detail", "");
                 String[] temp = dataPoint.trim().split("\\s+");
@@ -46,6 +48,7 @@ public class SQLDatabase {
         }
     }
 
+    // Appends a new vehicle to the workingDatabase
     public void insertNewVehicle(Vehicle vehicle) {
         String sql = "INSERT INTO " + workingDatabase+ " (vehicle_id, days, year, make, model, serial) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
@@ -75,12 +78,13 @@ public class SQLDatabase {
         return found;
     }
 
-    public Boolean search (String searchValue) {
+    // Checks to see if there is a vehicle with a unique stock number in the database
+    public Boolean search (String vehicleID) {
         String sql = "SELECT * FROM " + workingDatabase + " WHERE (vehicle_id) = (?)";
         PreparedStatement ps = null;
         try {
             ps = CONN.prepareStatement(sql);
-            ps.setString(1, searchValue);
+            ps.setString(1, vehicleID);
 
             ResultSet resultSet = ps.executeQuery();
 
@@ -101,32 +105,7 @@ public class SQLDatabase {
         return false;
     }
 
-    public void updateVehiclePosition(String vehicleID, String x_pos, String y_pos) {
-        String sql = "UPDATE " + workingDatabase + " SET x_pos = (?), y_pos = (?) WHERE (vehicle_id) = (?)";
-
-        updateVehicle(vehicleID, y_pos, x_pos, sql);
-    }
-
-    public void updateVehicleSize (String vehicleID, String width, String height) {
-        String sql = "UPDATE " + workingDatabase + " SET width = (?), height = (?) WHERE (vehicle_id) = (?)";
-
-        updateVehicle(vehicleID, width, height, sql);
-    }
-
-    private void updateVehicle(String vehicleID, String arg1, String arg2, String sql) {
-        try (PreparedStatement ps = CONN.prepareStatement(sql)){
-
-            ps.setString(1, arg2);
-            ps.setString(2, arg1);
-            ps.setString(3, vehicleID);
-
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
+    // Returns a single vehicles in the database in Vehicle class format
     public List getSingleVehicle(String vehicleID) {
         String sql = "SELECT * FROM " + workingDatabase + " WHERE (vehicle_id) = '" + vehicleID + "'";
 
@@ -135,6 +114,7 @@ public class SQLDatabase {
         return temp;
     }
 
+    // Returns all of the vehicles in the database in Vehicle class format
     public List getAllVehicles() {
         String sql = "SELECT * FROM " + workingDatabase;
 
@@ -143,7 +123,8 @@ public class SQLDatabase {
         return temp;
     }
 
-    private void getVehicle(String sql, List<Vehicle> temp) {
+    // Parent for getAllVehicles and getSingleVehicle
+    private List getVehicle(String sql, List<Vehicle> temp) {
         try (PreparedStatement ps = CONN.prepareStatement(sql)) {
 
             ResultSet resultSet = ps.executeQuery();
@@ -155,18 +136,17 @@ public class SQLDatabase {
                         resultSet.getString(3),
                         resultSet.getString(4),
                         resultSet.getString(5),
-                        resultSet.getString(6),
-                        resultSet.getString(7),
-                        resultSet.getString(8),
-                        resultSet.getString(9),
-                        resultSet.getString(10)));
+                        resultSet.getString(6)));
             }
             resultSet.close();
+            return temp;
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return temp;
     }
 
+    // Delete an entry in the database based on vehicle ID
     public void delete (String removeValue) {
         String sql = "DELETE FROM " + workingDatabase + " WHERE (vehicle_id) = (?)";
 
@@ -178,6 +158,7 @@ public class SQLDatabase {
         }
     }
 
+    // Get a connection to the database
     private Connection getConnection(Connection connection) throws SQLException {
         try {
             Class.forName("org.sqlite.JDBC");

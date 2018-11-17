@@ -16,7 +16,7 @@ public class SaveLoadLayout {
                     "save_location.txt"));
             String line = reader.readLine();
             while (line != null) {
-                System.out.println(line);
+                //System.out.println(line);
                 temp.add(new ParseShapeNode().parseNode(line));
                 // read next line
                 line = reader.readLine();

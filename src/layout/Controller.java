@@ -145,10 +145,11 @@ public class Controller implements Initializable {
 
         Begin Layout Specific Code
          */
+        // TODO: Just place near center of screen
         layout_add_button.setOnMouseClicked(e -> {
             if (e.getSceneX() < maxX && e.getSceneY() < maxY) {
                 int r = (int) (Math.random() * (500 - 10)) + 10;
-                int t = (int) (Math.random() * (800 - 10)) + 10;
+                int t = (int) (Math.random() * (500 - 10)) + 10;
 
                 layout_anchor_pane.getChildren().add(createDraggableRectangle(r, t, 30, 15));
             }
@@ -182,10 +183,7 @@ public class Controller implements Initializable {
 
             // TODO: Add checks to see if the layout is empty
             for (String[] info : spots){
-                for (int i = 0; i < info.length; i ++){
-                    System.out.println(info[i]);
                     parkingSpots.add(parkingSpots.size() , new ParkingSpot(Double.parseDouble(info[0]), Double.parseDouble(info[1]), Double.parseDouble(info[2]), Double.parseDouble(info[3])));
-                }
             }
             for (ParkingSpot spot : parkingSpots){
                 layout_anchor_pane.getChildren().add(createDraggableRectangle(spot.getX_pos(), spot.getY_pos(), spot.getWidth(), spot.getHeight()));
@@ -332,8 +330,7 @@ public class Controller implements Initializable {
 
     public void addVehicleListInfo(List vehicle){
 
-        List<Vehicle> temp = vehicle;
-        for (Vehicle veh : temp){
+        for (Vehicle veh : (List<Vehicle>) vehicle){
             locator_vehicle_information.getItems().add("Stock #: " + veh.getVehicleID());
             locator_vehicle_information.getItems().add("Make: " + veh.getMake());
             locator_vehicle_information.getItems().add("Days: " + veh.getDays());
