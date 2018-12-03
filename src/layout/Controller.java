@@ -2,6 +2,7 @@ package layout;
 
 import dbUtil.SQLDatabase;
 import dbUtil.Vehicle;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point2D;
@@ -11,25 +12,28 @@ import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import parkingUtil.ParkingSpot;
 import parkingUtil.SaveLoadLayout;
 
-import java.io.FileNotFoundException;
+import java.io.File;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Controller implements Initializable {
 
     @FXML
     public AnchorPane locator_anchor_pane;
+
+    @FXML
+    public ScrollPane locator_scrollpane;
 
     @FXML
     private Button locator_search_button;
@@ -47,10 +51,16 @@ public class Controller implements Initializable {
     private ListView editor_add_list;
 
     @FXML
+    public Button editor_save_button;
+
+    @FXML
     private Label editor_total_label;
 
     @FXML
     public AnchorPane editor_anchor_pane;
+
+    @FXML
+    public ScrollPane editor_scrollpane;
 
     @FXML
     private AnchorPane layout_anchor_pane;
@@ -68,7 +78,13 @@ public class Controller implements Initializable {
     private Button layout_browse_button;
 
     @FXML
-    public Button layout_load_button;
+    public Button utilities_load_database_button;
+
+    @FXML
+    public Button utilities_merge_database_button;
+
+    @FXML
+    public Button utilities_clear_database_button;
 
     @FXML
     public TabPane main_tabpane;
@@ -79,32 +95,45 @@ public class Controller implements Initializable {
 
     static class Wrapper<T> { T value ; }
 
+    String layoutSaveName = null;
+
     // TODO: Make the scrollpane zoomable
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         SaveLoadLayout saveLoadLayout = new SaveLoadLayout();
         ArrayList<ParkingSpot> parkingSpots = new ArrayList<>();
-        image = new Image("/assets/skm.jpg");
-        ImageView iv = new ImageView(image);
-        iv.fitWidthProperty().bind(layout_scrollpane.widthProperty());
-        iv.fitHeightProperty().bind(layout_scrollpane.heightProperty());
-        iv.setPreserveRatio(false);
-        final double maxX = iv.getImage().getWidth();
-        final double maxY = iv.getImage().getHeight();
-
-        layout_anchor_pane.getChildren().add(iv);
-        editor_anchor_pane.getChildren().add(iv);
-        layout_anchor_pane.getChildren().add(iv);
 
         /*
         Begin Locator Specific Code
          */
+
+        //TODO: Add button to manually sync/clear database.
+        //TODO: Also needs to select database names.
         SQLDatabase sqlDatabaseNew = new SQLDatabase("newlotdatabase");
 //        sqlDatabaseNew.xlsxToSQL("CDJR NEW 8.31.18.xlsx");
 //        sqlDatabaseNew.difference("CDJR NEW 9.24.18.xlsx");
         SQLDatabase sqlDatabaseUsed = new SQLDatabase("usedlotdatabase");
 //        sqlDatabaseUsed.xlsxToSQL("CDJR USED 8.31.xlsx");
 //        sqlDatabaseUsed.difference("CDJR USED 9.24.xlsx");
+
+        //TODO: Add ability to select initial and second(merge) spreadsheet rather than hardcode
+        utilities_load_database_button.setOnMouseClicked(e -> {
+            sqlDatabaseNew.xlsxToSQL("CDJR NEW 8.31.18.xlsx");
+            sqlDatabaseUsed.xlsxToSQL("CDJR USED 8.31.xlsx");
+            System.out.println("Initial Workbook Loaded");
+        });
+
+        utilities_merge_database_button.setOnMouseClicked(e ->{
+            sqlDatabaseNew.difference("CDJR NEW 9.24.18.xlsx");
+            sqlDatabaseUsed.difference("CDJR USED 9.24.xlsx");
+            System.out.println("New Workbook Merged");
+        });
+
+        utilities_clear_database_button.setOnMouseClicked(e -> {
+            sqlDatabaseNew.deleteAllEntries();
+            sqlDatabaseUsed.deleteAllEntries();
+            System.out.println("All Databases Cleared");
+        });
 
         locator_search_button.setOnMouseClicked(e -> {
             // Make sure input is upper case since search is case-sensitive
@@ -122,7 +151,17 @@ public class Controller implements Initializable {
 
         Begin Editor Specific Code
          */
-        editor_refresh_button.setOnMouseClicked(e -> {
+
+        //TODO: Check last edited save file and load that (modified time)
+        //loadParkingSpots(saveLoadLayout, parkingSpots, editor_anchor_pane, layoutSaveName + "_savelocations.txt", false);
+
+        editor_save_button.setOnMouseClicked(e -> {
+            for (ParkingSpot spot : parkingSpots){
+                    System.out.println(spot.getTestinfo());
+            }
+        });
+
+        editor_refresh_button.setOnMouseClicked(e ->{
             List<Vehicle> newAllVehicles = sqlDatabaseNew.getAllVehicles();
             List<Vehicle> usedAllVehicles = sqlDatabaseUsed.getAllVehicles();
             int total = 0;
@@ -140,24 +179,61 @@ public class Controller implements Initializable {
 
             editor_total_label.setText("Total Unadded Vehicles: " + total);
         });
+
+        editor_add_list.setCellFactory(param -> {
+            ListCell<String> listCell = new ListCell<String>() {
+                @Override
+                public void updateItem(String item , boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(item);
+                }
+            };
+
+            // Setup the transfer mode for drag and drop
+            listCell.setOnDragDetected(event -> {
+                /* drag was detected, start a drag-and-drop gesture*/
+                /* allow any transfer mode */
+                Dragboard db = listCell.startDragAndDrop(TransferMode.COPY);
+
+                /* Put a string on a dragboard */
+                ClipboardContent content = new ClipboardContent();
+                content.putString(listCell.getText());
+                db.setContent(content);
+                System.out.println("Dragging" + content);
+
+                event.consume();
+            });
+
+            //When the drag is successful execute below
+            listCell.setOnDragDone(event -> {
+                /* the drag and drop gesture ended */
+                /* if the data was successfully moved, clear it */
+                if (event.getTransferMode() == TransferMode.COPY) {
+                    listCell.setText("DROPPED ONTO TARGET!");
+                    //editor_add_list.getItems().remove(listCell.getItem());
+                    //TODO: add another box and change that text
+                    int tempnum = Integer.parseInt(editor_total_label.getText().substring(editor_total_label.getText().indexOf(':') + 1).trim()) - 1;
+                    editor_total_label.setText("Total Unadded Vehicles: " + tempnum);
+                }
+                event.consume();
+            });
+
+            return listCell;
+        });
         /*
         End Editor Specific Code
 
         Begin Layout Specific Code
          */
+
         // TODO: Just place near center of screen
         layout_add_button.setOnMouseClicked(e -> {
-            if (e.getSceneX() < maxX && e.getSceneY() < maxY) {
+//            if (e.getSceneX() < maxX_layout && e.getSceneY() < maxY_layout) {
                 int r = (int) (Math.random() * (500 - 10)) + 10;
                 int t = (int) (Math.random() * (500 - 10)) + 10;
 
-                layout_anchor_pane.getChildren().add(createDraggableRectangle(r, t, 30, 15));
-            }
-        });
-
-        layout_browse_button.setOnMouseClicked(e -> {
-            // TODO: Add back ability to load layout
-            //openBrowseMenu();
+                layout_anchor_pane.getChildren().add(createDraggableRectangle(r, t, 50, 30));
+//            }
         });
 
         layout_save_button.setOnMouseClicked(e -> {
@@ -168,34 +244,118 @@ public class Controller implements Initializable {
                     // Save the raw node data so we can just parse it later.
                     // Yes this is probably more expensive than just saving the values and
                     // reading it line by line... Maybe I'll fix that later.
-                    try {
-                        saveLoadLayout.SaveLayout(n.toString());
-                    } catch (FileNotFoundException e1) {
-                        e1.printStackTrace();
-                    }
+
+                    //TODO: Get name from the image selected
+                    saveLoadLayout.SaveLayout(n.toString(), layoutSaveName + "_savelocations.txt");
                 }
             }
         });
 
-        layout_load_button.setOnMouseClicked(e -> {
-            layout_load_button.setDisable(true);
-            ArrayList<String[]> spots = saveLoadLayout.LoadLayout();
-
-            // TODO: Add checks to see if the layout is empty
-            for (String[] info : spots){
-                    parkingSpots.add(parkingSpots.size() , new ParkingSpot(Double.parseDouble(info[0]), Double.parseDouble(info[1]), Double.parseDouble(info[2]), Double.parseDouble(info[3])));
-            }
-            for (ParkingSpot spot : parkingSpots){
-                layout_anchor_pane.getChildren().add(createDraggableRectangle(spot.getX_pos(), spot.getY_pos(), spot.getWidth(), spot.getHeight()));
-            }
+        layout_browse_button.setOnMouseClicked(e -> {
+            // TODO: Add back ability to load layout and check if cancel (NULL)
+            File file = new File(openBrowseMenu());
+            image = new Image(file.toURI().toString());
+            updateAllLayouts(image);
+            loadParkingSpots(saveLoadLayout, parkingSpots, layout_anchor_pane, layoutSaveName + "_savelocations.txt",true);
+            loadParkingSpots(saveLoadLayout, parkingSpots, editor_anchor_pane, layoutSaveName + "_savelocations.txt", false);
+            loadParkingSpots(saveLoadLayout, parkingSpots, locator_anchor_pane, layoutSaveName + "_savelocations.txt", false);
         });
     }
 
-    // Create a new rectangle and add points to both resize and move it
-    private Rectangle createDraggableRectangle(double x, double y, double width, double height) {
+    // Load the saved rectangles based on the tab (draggable and not draggable for layout and editor respectively).
+    private void loadParkingSpots(SaveLoadLayout saveLoadLayout, ArrayList<ParkingSpot> parkingSpots, AnchorPane pane, String saveFile, Boolean draggable) {
+        ArrayList<String[]> spots = saveLoadLayout.LoadLayout(saveFile);
+
+        // TODO: Add checks to see if the layout is empty
+        for (String[] info : spots){
+            parkingSpots.add(parkingSpots.size() , new ParkingSpot(Double.parseDouble(info[0]), Double.parseDouble(info[1]), Double.parseDouble(info[2]), Double.parseDouble(info[3])));
+        }
+
+        if (draggable){
+            for (ParkingSpot spot : parkingSpots){
+                pane.getChildren().add(createDraggableRectangle(spot.getX(), spot.getY(), spot.getWidth(), spot.getHeight()));
+            }
+        } else {
+            for (ParkingSpot spot : parkingSpots){
+                pane.getChildren().add(createRectangle(parkingSpots, spot.getX(), spot.getY(), spot.getWidth(), spot.getHeight()));
+            }
+        }
+    }
+
+    // Create a new rectangle
+    private ParkingSpot createRectangle(ArrayList<ParkingSpot> parkingspot,double x, double y, double width, double height){
+        ParkingSpot vehicleSpot = new ParkingSpot(x, y, width, height);
+        vehicleSpot.setStroke(Color.BLACK);
+        vehicleSpot.setStrokeWidth(2);
+        vehicleSpot.setFill(Color.GREY);
+
+        vehicleSpot.setOnDragDropped(event -> {
+            System.out.println(event.getGestureTarget());
+
+            System.out.println("onDragDropped");
+            /* data dropped */
+            /* if there is a string data on dragboard, read it and use it */
+            Dragboard db = event.getDragboard();
+            boolean success = false;
+            if (db.hasString()) {
+                for (ParkingSpot spot : parkingspot){
+                    if (spot.getX() == vehicleSpot.getX() && spot.getY() == vehicleSpot.getY()){
+                        String[] dbSplit = db.getString().split("\\|", -1);
+                        spot.setTestinfo(db.getString());
+                        System.out.println("Added " + Arrays.toString(dbSplit)+ " to " + spot.toString());
+
+                        vehicleSpot.setFill(Color.BLUE);
+                    }
+                }
+                success = true;
+            }
+            /* let the source know whether the string was successfully
+             * transferred and used */
+            event.setDropCompleted(success);
+            event.consume();
+        });
+
+        vehicleSpot.setOnDragEntered(event -> {
+            /* the drag-and-drop gesture entered the target */
+            /* show to the user that it is an actual gesture target */
+            if (event.getGestureSource() != vehicleSpot &&
+                    event.getDragboard().hasString()) {
+                if (vehicleSpot.getFill() == Color.BLUE){
+                    event.acceptTransferModes(TransferMode.NONE);
+                } else {
+                    vehicleSpot.setFill(Color.GREEN);
+                }
+            }
+
+            event.consume();
+        });
+
+        vehicleSpot.setOnDragExited(event -> {
+            /* mouse moved away, remove the graphical cues */
+            if (vehicleSpot.getFill() == Color.GREEN){
+                vehicleSpot.setFill(Color.GREY);
+            }
+            event.consume();
+        });
+
+        vehicleSpot.setOnDragOver(event -> {
+            event.acceptTransferModes(TransferMode.COPY);
+            if (vehicleSpot.getFill() == Color.BLUE){
+                event.acceptTransferModes(TransferMode.NONE);
+            } else {
+                vehicleSpot.setFill(Color.GREEN);
+            }
+            event.consume();
+        });
+
+        return vehicleSpot;
+    }
+
+    // Create a new draggable rectangle and add points to both resize and move it
+    private ParkingSpot createDraggableRectangle(double x, double y, double width, double height) {
         final double handleRadius = 5 ;
 
-        Rectangle vehicleSpot = new Rectangle(x, y, width, height);
+        ParkingSpot vehicleSpot = new ParkingSpot(x, y, width, height);
 
         vehicleSpot.setStroke(Color.BLACK);
         vehicleSpot.setStrokeWidth(2);
@@ -315,21 +475,41 @@ public class Controller implements Initializable {
         }
     }
 
+    public String updateAllLayouts(Image image){
+        ImageView locator_imageview = new ImageView(image);
+        locator_imageview.fitWidthProperty().bind(layout_scrollpane.widthProperty());
+        locator_imageview.fitHeightProperty().bind(layout_scrollpane.heightProperty());
+        locator_imageview.setPreserveRatio(false);
 
+        ImageView editor_imageview = new ImageView(image);
+        editor_imageview.fitWidthProperty().bind(layout_scrollpane.widthProperty());
+        editor_imageview.fitHeightProperty().bind(layout_scrollpane.heightProperty());
+        editor_imageview.setPreserveRatio(false);
+
+        ImageView layout_imageview = new ImageView(image);
+        layout_imageview.fitWidthProperty().bind(layout_scrollpane.widthProperty());
+        layout_imageview.fitHeightProperty().bind(layout_scrollpane.heightProperty());
+        layout_imageview.setPreserveRatio(false);
+
+        locator_anchor_pane.getChildren().add(locator_imageview);
+        editor_anchor_pane.getChildren().add(editor_imageview);
+        layout_anchor_pane.getChildren().add(layout_imageview);
+
+        return image.getUrl().substring(image.getUrl().lastIndexOf("/")+1);
+    }
 
     public String openBrowseMenu(){
         stage = (Stage) layout_scrollpane.getScene().getWindow();
         FileChooser fc = new FileChooser();
         FileChooser.ExtensionFilter png = new FileChooser.ExtensionFilter("png", "*.png");
         FileChooser.ExtensionFilter jpg = new FileChooser.ExtensionFilter("jpg", "*.jpg");
-        fc.getExtensionFilters().addAll(png,jpg);
+        fc.getExtensionFilters().addAll(jpg, png);
 
         // TODO: If no file is chosen nullpointed needs to be fixed
         return fc.showOpenDialog(stage).getAbsolutePath();
     }
 
-    public void addVehicleListInfo(List vehicle){
-
+    private void addVehicleListInfo(List vehicle){
         for (Vehicle veh : (List<Vehicle>) vehicle){
             locator_vehicle_information.getItems().add("Stock #: " + veh.getVehicleID());
             locator_vehicle_information.getItems().add("Make: " + veh.getMake());

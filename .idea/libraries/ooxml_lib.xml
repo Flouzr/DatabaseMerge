@@ -1,8 +1,8 @@
 <component name="libraryTable">
   <library name="ooxml-lib">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib/poi-4.0.0/ooxml-lib/xmlbeans-3.0.1.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/poi-4.0.0/ooxml-lib/curvesapi-1.05.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/poi-4.0.0/ooxml-lib/xmlbeans-3.0.1.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

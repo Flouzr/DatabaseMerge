@@ -105,6 +105,18 @@ public class SQLDatabase {
         return false;
     }
 
+    public Boolean deleteAllEntries(){
+        try (PreparedStatement ps = CONN.prepareStatement("DELETE FROM " + workingDatabase )){
+            ps.execute();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+        //String sql = "DELETE FROM " + workingDatabase;
+
+    }
+
     // Returns a single vehicles in the database in Vehicle class format
     public List getSingleVehicle(String vehicleID) {
         String sql = "SELECT * FROM " + workingDatabase + " WHERE (vehicle_id) = '" + vehicleID + "'";

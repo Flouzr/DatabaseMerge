@@ -9,11 +9,10 @@ public class SaveLoadLayout {
     private ArrayList<String[]> temp = new ArrayList<>();
 
     // TODO: Input parameter needs to be name of lot loaded to load correct save
-    public ArrayList<String[]> LoadLayout(){
+    public ArrayList<String[]> LoadLayout(String filename){
         BufferedReader reader;
         try {
-            reader = new BufferedReader(new FileReader(
-                    "save_location.txt"));
+            reader = new BufferedReader(new FileReader(filename));
             String line = reader.readLine();
             while (line != null) {
                 //System.out.println(line);
@@ -28,9 +27,9 @@ public class SaveLoadLayout {
         return temp;
     }
 
-    public void SaveLayout(String lotInfo) throws FileNotFoundException {
+    public void SaveLayout(String lotInfo, String filename) {
         // TODO: Save based on the name of the image
-        File layoutSave = new File("save_location.txt");
+        File layoutSave = new File(filename);
         try{
             if(!layoutSave.exists()){
                 layoutSave.createNewFile();

@@ -1,10 +1,10 @@
 <component name="libraryTable">
   <library name="commons">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib/commons/commons-collections4-4.2-javadoc.jar!/" />
-      <root url="jar://$PROJECT_DIR$/lib/commons/commons-collections4-4.2-tests.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/commons/commons-collections4-4.2-test-sources.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/commons/commons-collections4-4.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons/commons-collections4-4.2-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons/commons-collections4-4.2-tests.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/commons/commons-collections4-4.2-sources.jar!/" />
     </CLASSES>
     <JAVADOC />
