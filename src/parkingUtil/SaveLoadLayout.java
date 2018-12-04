@@ -10,12 +10,12 @@ public class SaveLoadLayout {
 
     // TODO: Input parameter needs to be name of lot loaded to load correct save
     public ArrayList<String[]> LoadLayout(String filename){
+        temp.clear();
         BufferedReader reader;
         try {
             reader = new BufferedReader(new FileReader(filename));
             String line = reader.readLine();
             while (line != null) {
-                //System.out.println(line);
                 temp.add(new ParseShapeNode().parseNode(line));
                 // read next line
                 line = reader.readLine();

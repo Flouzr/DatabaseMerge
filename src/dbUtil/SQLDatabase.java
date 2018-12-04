@@ -42,7 +42,7 @@ public class SQLDatabase {
                 insertNewVehicle(newVehicle);
             }
 
-            System.out.println("Datapoints added");
+            System.out.println("Datapoints added to " + workingDatabase);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -113,8 +113,6 @@ public class SQLDatabase {
             e.printStackTrace();
         }
         return false;
-        //String sql = "DELETE FROM " + workingDatabase;
-
     }
 
     // Returns a single vehicles in the database in Vehicle class format
@@ -175,7 +173,7 @@ public class SQLDatabase {
         try {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection(SQLCONN);
-            System.out.println("Database connected");
+            System.out.println("Database connected to " + workingDatabase);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }

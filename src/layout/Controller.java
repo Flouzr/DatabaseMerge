@@ -17,6 +17,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import parkingUtil.ParkingSpot;
@@ -93,6 +94,8 @@ public class Controller implements Initializable {
 
     private Image image;
 
+    private ParkingSpot lastSpotSearched;
+
     static class Wrapper<T> { T value ; }
 
     String layoutSaveName = null;
@@ -140,10 +143,23 @@ public class Controller implements Initializable {
             locator_vehicle_information.getItems().clear();
             if (sqlDatabaseNew.search(locator_search_field.getText().toUpperCase())){
                 addVehicleListInfo(sqlDatabaseNew.getSingleVehicle(locator_search_field.getText().toUpperCase()));
+                HightlightSpot(parkingSpots);
             } else if (sqlDatabaseUsed.search(locator_search_field.getText().toUpperCase())) {
                 locator_vehicle_information.getItems().add(sqlDatabaseUsed.getSingleVehicle(locator_search_field.getText().toUpperCase()));
+                for (ParkingSpot spot : parkingSpots){
+                    if (spot.getFill() == Color.BLUE){
+                        HightlightSpot(parkingSpots);
+                    }
+                }
             } else {
                 locator_vehicle_information.getItems().add("No vehicles with stock number " + locator_search_field.getText());
+                if (lastSpotSearched != null){
+                    for (ParkingSpot spot : parkingSpots){
+                        spot.setStroke(Color.BLACK);
+                        spot.setStrokeWidth(2);
+                        spot.setFill(Color.GREY);
+                    }
+                }
             }
         });
         /*
@@ -155,13 +171,28 @@ public class Controller implements Initializable {
         //TODO: Check last edited save file and load that (modified time)
         //loadParkingSpots(saveLoadLayout, parkingSpots, editor_anchor_pane, layoutSaveName + "_savelocations.txt", false);
 
+
+        //TODO: Check if blue and if so save.
         editor_save_button.setOnMouseClicked(e -> {
-            for (ParkingSpot spot : parkingSpots){
-                    System.out.println(spot.getTestinfo());
-            }
+                    List<Node> temp = getAllNodes(editor_scrollpane);
+                    for (Node n : temp){
+                        if (n instanceof ParkingSpot) {
+                            if(((ParkingSpot) n).getFill() == Color.BLUE){
+                                for (ParkingSpot spot : parkingSpots){
+                                    if (spot.getTestinfo() != null ){
+                                        if (spot.getX() == ((ParkingSpot) n).getX() && spot.getY() == ((ParkingSpot) n).getY() && spot.getFill() == ((ParkingSpot) n).getFill()) {
+                                            new SaveLoadLayout().SaveLayout(n + "===" + spot.getTestinfo(), layoutSaveName + "_savespots.txt");
+                                            System.out.println(n);
+                                            System.out.println(spot.getTestinfo());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
         });
 
-        editor_refresh_button.setOnMouseClicked(e ->{
+        editor_refresh_button.setOnMouseClicked(e -> {
             List<Vehicle> newAllVehicles = sqlDatabaseNew.getAllVehicles();
             List<Vehicle> usedAllVehicles = sqlDatabaseUsed.getAllVehicles();
             int total = 0;
@@ -199,7 +230,6 @@ public class Controller implements Initializable {
                 ClipboardContent content = new ClipboardContent();
                 content.putString(listCell.getText());
                 db.setContent(content);
-                System.out.println("Dragging" + content);
 
                 event.consume();
             });
@@ -209,8 +239,8 @@ public class Controller implements Initializable {
                 /* the drag and drop gesture ended */
                 /* if the data was successfully moved, clear it */
                 if (event.getTransferMode() == TransferMode.COPY) {
-                    listCell.setText("DROPPED ONTO TARGET!");
-                    //editor_add_list.getItems().remove(listCell.getItem());
+                    //listCell.setText("DROPPED ONTO TARGET!");
+                    editor_add_list.getItems().remove(listCell.getItem());
                     //TODO: add another box and change that text
                     int tempnum = Integer.parseInt(editor_total_label.getText().substring(editor_total_label.getText().indexOf(':') + 1).trim()) - 1;
                     editor_total_label.setText("Total Unadded Vehicles: " + tempnum);
@@ -262,13 +292,35 @@ public class Controller implements Initializable {
         });
     }
 
+    private void HightlightSpot(ArrayList<ParkingSpot> parkingSpots) {
+        for (ParkingSpot spot : parkingSpots){
+            if (spot.getTestinfo() != null ){
+                if (spot.getTestinfo().substring(0, spot.getTestinfo().indexOf("|")).trim().equals(locator_search_field.getText().toUpperCase())){
+                    if (lastSpotSearched != null){
+                        lastSpotSearched.setStroke(Color.BLACK);
+                        lastSpotSearched.setStrokeWidth(2);
+                        lastSpotSearched.setFill(Color.GREY);
+                    }
+                    lastSpotSearched = spot;
+                    locator_anchor_pane.getChildren().remove(spot);
+                    spot.setStroke(Color.RED);
+                    spot.setFill(Color.BLACK);
+                    spot.setStrokeWidth(4);
+                    locator_anchor_pane.getChildren().add(spot);
+                }
+            }
+        }
+    }
+
     // Load the saved rectangles based on the tab (draggable and not draggable for layout and editor respectively).
     private void loadParkingSpots(SaveLoadLayout saveLoadLayout, ArrayList<ParkingSpot> parkingSpots, AnchorPane pane, String saveFile, Boolean draggable) {
         ArrayList<String[]> spots = saveLoadLayout.LoadLayout(saveFile);
 
+
+        parkingSpots.clear();
         // TODO: Add checks to see if the layout is empty
         for (String[] info : spots){
-            parkingSpots.add(parkingSpots.size() , new ParkingSpot(Double.parseDouble(info[0]), Double.parseDouble(info[1]), Double.parseDouble(info[2]), Double.parseDouble(info[3])));
+                parkingSpots.add(parkingSpots.size() , new ParkingSpot(Double.parseDouble(info[0]), Double.parseDouble(info[1]), Double.parseDouble(info[2]), Double.parseDouble(info[3])));
         }
 
         if (draggable){
@@ -280,6 +332,7 @@ public class Controller implements Initializable {
                 pane.getChildren().add(createRectangle(parkingSpots, spot.getX(), spot.getY(), spot.getWidth(), spot.getHeight()));
             }
         }
+//        parkingSpots.clear();
     }
 
     // Create a new rectangle
@@ -290,9 +343,6 @@ public class Controller implements Initializable {
         vehicleSpot.setFill(Color.GREY);
 
         vehicleSpot.setOnDragDropped(event -> {
-            System.out.println(event.getGestureTarget());
-
-            System.out.println("onDragDropped");
             /* data dropped */
             /* if there is a string data on dragboard, read it and use it */
             Dragboard db = event.getDragboard();
@@ -300,10 +350,8 @@ public class Controller implements Initializable {
             if (db.hasString()) {
                 for (ParkingSpot spot : parkingspot){
                     if (spot.getX() == vehicleSpot.getX() && spot.getY() == vehicleSpot.getY()){
-                        String[] dbSplit = db.getString().split("\\|", -1);
                         spot.setTestinfo(db.getString());
-                        System.out.println("Added " + Arrays.toString(dbSplit)+ " to " + spot.toString());
-
+                        spot.setFill(Color.BLUE);
                         vehicleSpot.setFill(Color.BLUE);
                     }
                 }
@@ -372,6 +420,12 @@ public class Controller implements Initializable {
         // bind to bottom right corner of Rectangle:
         resizeHandleSE.centerXProperty().bind(vehicleSpot.xProperty().add(vehicleSpot.widthProperty()));
         resizeHandleSE.centerYProperty().bind(vehicleSpot.yProperty().add(vehicleSpot.heightProperty()));
+
+//        vehicleSpot.setOnMouseClicked(e ->{
+//            if (e.getButton() == MouseButton.SECONDARY){
+//                layout_anchor_pane.getChildren().remove(vehicleSpot);
+//            }
+//        });
 
         // force circles to live in same parent as rectangle:
         vehicleSpot.parentProperty().addListener((obs, oldParent, newParent) -> {
