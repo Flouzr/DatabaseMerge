@@ -156,6 +156,25 @@ public class SQLDatabase {
         return temp;
     }
 
+    public boolean checkIfEmpty(){
+        String sql = "SELECT count(*) FROM " + workingDatabase + " limit 1";
+
+        try (PreparedStatement ps = CONN.prepareStatement(sql)) {
+
+            ResultSet resultSet = ps.executeQuery();
+
+            if (resultSet.getString(1).equals("0")){
+                return true;
+            } else {
+                resultSet.close();
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     // Delete an entry in the database based on vehicle ID
     public void delete (String removeValue) {
         String sql = "DELETE FROM " + workingDatabase + " WHERE (vehicle_id) = (?)";

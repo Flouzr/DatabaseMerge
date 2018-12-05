@@ -82,9 +82,12 @@
         <content>
           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                <children>
-                  <Button fx:id="utilities_load_database_button" layoutX="14.0" layoutY="14.0" mnemonicParsing="false" text="Load Initial Database" />
-                  <Button fx:id="utilities_merge_database_button" layoutX="14.0" layoutY="45.0" mnemonicParsing="false" text="Merge Second Database" />
-                  <Button fx:id="utilities_clear_database_button" layoutX="14.0" layoutY="76.0" mnemonicParsing="false" text="Clear Database" />
+                  <Button fx:id="utilities_load_database_button_new" layoutX="14.0" layoutY="14.0" mnemonicParsing="false" text="[New Vehicles] Load Initial Database" />
+                  <Button fx:id="utilities_merge_database_button_new" layoutX="14.0" layoutY="45.0" mnemonicParsing="false" text="[New Vehicles] Merge Database" />
+                  <Button fx:id="utilities_clear_database_button" layoutX="14.0" layoutY="267.0" mnemonicParsing="false" text="Clear All Databases" />
+                  <Button fx:id="utilities_merge_database_button_used" layoutX="292.0" layoutY="48.0" mnemonicParsing="false" text="[Used Vehicles] Merge Database" />
+                  <Button fx:id="utilities_load_database_button_used" layoutX="292.0" layoutY="17.0" mnemonicParsing="false" text="[Used Vehicles] Load Initial Database" />
+                  <TextArea fx:id="utilities_console_area" layoutX="18.0" layoutY="79.0" prefHeight="176.0" prefWidth="600.0" />
                </children>
             </AnchorPane>
         </content>

@@ -2,7 +2,6 @@ package layout;
 
 import dbUtil.SQLDatabase;
 import dbUtil.Vehicle;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Point2D;
@@ -17,16 +16,16 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import parkingUtil.ParkingSpot;
 import parkingUtil.SaveLoadLayout;
 
-import java.io.File;
+import java.io.*;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class Controller implements Initializable {
 
@@ -79,13 +78,22 @@ public class Controller implements Initializable {
     private Button layout_browse_button;
 
     @FXML
-    public Button utilities_load_database_button;
+    public Button utilities_load_database_button_new;
 
     @FXML
-    public Button utilities_merge_database_button;
+    public Button utilities_merge_database_button_new;
 
     @FXML
     public Button utilities_clear_database_button;
+
+    @FXML
+    public Button utilities_merge_database_button_used;
+
+    @FXML
+    public Button utilities_load_database_button_used;
+
+    @FXML
+    public TextArea utilities_console_area;
 
     @FXML
     public TabPane main_tabpane;
@@ -106,49 +114,68 @@ public class Controller implements Initializable {
         SaveLoadLayout saveLoadLayout = new SaveLoadLayout();
         ArrayList<ParkingSpot> parkingSpots = new ArrayList<>();
 
-        /*
-        Begin Locator Specific Code
-         */
+        utilities_console_area.setEditable(false);
 
         //TODO: Add button to manually sync/clear database.
         //TODO: Also needs to select database names.
         SQLDatabase sqlDatabaseNew = new SQLDatabase("newlotdatabase");
-//        sqlDatabaseNew.xlsxToSQL("CDJR NEW 8.31.18.xlsx");
-//        sqlDatabaseNew.difference("CDJR NEW 9.24.18.xlsx");
+        utilities_console_area.setText(utilities_console_area.getText() + "Database connected to newlotdatabase\n");
         SQLDatabase sqlDatabaseUsed = new SQLDatabase("usedlotdatabase");
-//        sqlDatabaseUsed.xlsxToSQL("CDJR USED 8.31.xlsx");
-//        sqlDatabaseUsed.difference("CDJR USED 9.24.xlsx");
+        utilities_console_area.setText(utilities_console_area.getText() + "Database connected to usedlotdatabase\n");
 
-        //TODO: Add ability to select initial and second(merge) spreadsheet rather than hardcode
-        utilities_load_database_button.setOnMouseClicked(e -> {
-            sqlDatabaseNew.xlsxToSQL("CDJR NEW 8.31.18.xlsx");
-            sqlDatabaseUsed.xlsxToSQL("CDJR USED 8.31.xlsx");
-            System.out.println("Initial Workbook Loaded");
+        if (sqlDatabaseNew.checkIfEmpty()){
+            utilities_merge_database_button_new.setDisable(true);
+        } else {
+            utilities_load_database_button_new.setDisable(true);
+        }
+
+        if (sqlDatabaseUsed.checkIfEmpty()){
+            utilities_merge_database_button_used.setDisable(true);
+        } else {
+            utilities_load_database_button_used.setDisable(true);
+        }
+
+        SelectInitialWorkbook(sqlDatabaseNew, utilities_load_database_button_new, utilities_merge_database_button_new);
+
+        SelectInitialWorkbook(sqlDatabaseUsed, utilities_load_database_button_used, utilities_merge_database_button_used);
+
+        utilities_merge_database_button_new.setOnMouseClicked(e ->{
+            String db_loc = openWorkbookBrowseMenu();
+            sqlDatabaseNew.difference(db_loc);
+            utilities_console_area.setText(utilities_console_area.getText() + "New Workbook Merged\n");
         });
 
-        utilities_merge_database_button.setOnMouseClicked(e ->{
-            sqlDatabaseNew.difference("CDJR NEW 9.24.18.xlsx");
-            sqlDatabaseUsed.difference("CDJR USED 9.24.xlsx");
-            System.out.println("New Workbook Merged");
+        utilities_merge_database_button_used.setOnMouseClicked(e ->{
+            String db_loc = openWorkbookBrowseMenu();
+            sqlDatabaseUsed.difference(db_loc);
+            utilities_console_area.setText(utilities_console_area.getText() + "New Workbook Merged\n");
         });
 
         utilities_clear_database_button.setOnMouseClicked(e -> {
             sqlDatabaseNew.deleteAllEntries();
             sqlDatabaseUsed.deleteAllEntries();
-            System.out.println("All Databases Cleared");
+            utilities_console_area.setText(utilities_console_area.getText() + "All Databases Cleared\n");
+            utilities_load_database_button_new.setDisable(false);
+            utilities_load_database_button_used.setDisable(false);
+            utilities_merge_database_button_new.setDisable(true);
+            utilities_merge_database_button_used.setDisable(true);
         });
+
+        /*
+        Begin Locator Specific Code
+         */
 
         locator_search_button.setOnMouseClicked(e -> {
             // Make sure input is upper case since search is case-sensitive
             locator_vehicle_information.getItems().clear();
             if (sqlDatabaseNew.search(locator_search_field.getText().toUpperCase())){
                 addVehicleListInfo(sqlDatabaseNew.getSingleVehicle(locator_search_field.getText().toUpperCase()));
-                HightlightSpot(parkingSpots);
+                HighlightSpot(parkingSpots);
             } else if (sqlDatabaseUsed.search(locator_search_field.getText().toUpperCase())) {
                 locator_vehicle_information.getItems().add(sqlDatabaseUsed.getSingleVehicle(locator_search_field.getText().toUpperCase()));
                 for (ParkingSpot spot : parkingSpots){
                     if (spot.getFill() == Color.BLUE){
-                        HightlightSpot(parkingSpots);
+                        HighlightSpot(parkingSpots);
                     }
                 }
             } else {
@@ -164,51 +191,62 @@ public class Controller implements Initializable {
         });
         /*
         End Locator Specific Code
-
+z
         Begin Editor Specific Code
          */
-
-        //TODO: Check last edited save file and load that (modified time)
-        //loadParkingSpots(saveLoadLayout, parkingSpots, editor_anchor_pane, layoutSaveName + "_savelocations.txt", false);
-
-
-        //TODO: Check if blue and if so save.
         editor_save_button.setOnMouseClicked(e -> {
-                    List<Node> temp = getAllNodes(editor_scrollpane);
-                    for (Node n : temp){
-                        if (n instanceof ParkingSpot) {
-                            if(((ParkingSpot) n).getFill() == Color.BLUE){
-                                for (ParkingSpot spot : parkingSpots){
-                                    if (spot.getTestinfo() != null ){
-                                        if (spot.getX() == ((ParkingSpot) n).getX() && spot.getY() == ((ParkingSpot) n).getY() && spot.getFill() == ((ParkingSpot) n).getFill()) {
-                                            new SaveLoadLayout().SaveLayout(n + "===" + spot.getTestinfo(), layoutSaveName + "_savespots.txt");
-                                            System.out.println(n);
-                                            System.out.println(spot.getTestinfo());
+            List<Node> temp = getAllNodes(editor_scrollpane);
+                for (Node n : temp){
+                    if (n instanceof ParkingSpot) {
+                        if(((ParkingSpot) n).getFill() == Color.BLUE){
+                            for (ParkingSpot spot : parkingSpots){
+                                if (spot.getTestinfo() != null ){
+                                    if (spot.getX() == ((ParkingSpot) n).getX() && spot.getY() == ((ParkingSpot) n).getY() && spot.getFill() == ((ParkingSpot) n).getFill()) {
+                                        String tmp = n.toString().replace("]", ", " + spot.getTestinfo().replaceAll("\\|", ",") + "]");
+                                        File f = new File(layoutSaveName + "_savespots.txt");
+                                        if(f.exists() && !f.isDirectory()) {
+                                            try {
+                                                if (!SearchFileForEntry(tmp, layoutSaveName + "_savespots.txt")){
+                                                    new SaveLoadLayout().SaveLayout(tmp, layoutSaveName + "_savespots.txt");
+                                                }
+                                            } catch (IOException e1) {
+                                                e1.printStackTrace();
+                                            };
+                                        } else {
+                                            new SaveLoadLayout().SaveLayout(tmp, layoutSaveName + "_savespots.txt");
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                }
         });
 
         editor_refresh_button.setOnMouseClicked(e -> {
             List<Vehicle> newAllVehicles = sqlDatabaseNew.getAllVehicles();
             List<Vehicle> usedAllVehicles = sqlDatabaseUsed.getAllVehicles();
-            int total = 0;
 
             editor_add_list.getItems().clear();
 
+            ArrayList<String[]> temp2 = new SaveLoadLayout().LoadLayout(layoutSaveName + "_savespots.txt");
+
+            Iterator<Vehicle> iter = newAllVehicles.iterator();
+
+            VehicleIterator(temp2, iter);
+
+            Iterator<Vehicle> iter2 = usedAllVehicles.iterator();
+
+            VehicleIterator(temp2, iter2);
+
             for (Vehicle veh : newAllVehicles){
-                editor_add_list.getItems().add(veh.toString());
-                total++;
+                        editor_add_list.getItems().add(veh.toString());
             }
             for (Vehicle veh : usedAllVehicles){
-                editor_add_list.getItems().add(veh.toString());
-                total++;
+                    editor_add_list.getItems().add(veh.toString());
             }
 
-            editor_total_label.setText("Total Unadded Vehicles: " + total);
+            editor_total_label.setText("Total Unadded Vehicles: " + editor_add_list.getItems().size());
         });
 
         editor_add_list.setCellFactory(param -> {
@@ -269,6 +307,14 @@ public class Controller implements Initializable {
         layout_save_button.setOnMouseClicked(e -> {
             parkingSpots.clear();
             List<Node> temp = getAllNodes(layout_scrollpane);
+            RemoveAllRectangles(editor_anchor_pane);
+            RemoveAllRectangles(locator_anchor_pane);
+            File f = new File(layoutSaveName + "_savelocations.txt");
+            try {
+                Files.newBufferedWriter(f.toPath() , StandardOpenOption.TRUNCATE_EXISTING);
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
             for (Node n : temp){
                 if (n.toString().contains("Rectangle")){
                     // Save the raw node data so we can just parse it later.
@@ -276,7 +322,12 @@ public class Controller implements Initializable {
                     // reading it line by line... Maybe I'll fix that later.
 
                     //TODO: Get name from the image selected
-                    saveLoadLayout.SaveLayout(n.toString(), layoutSaveName + "_savelocations.txt");
+                        new SaveLoadLayout().SaveLayout(n.toString(), layoutSaveName + "_savelocations.txt");
+
+                    loadParkingSpots(saveLoadLayout, parkingSpots, editor_anchor_pane, layoutSaveName + "_savelocations.txt", false);
+                    loadParkingSpots(saveLoadLayout, parkingSpots, locator_anchor_pane, layoutSaveName + "_savelocations.txt", false);
+//                    LoadEditorSpots(parkingSpots);
+//                    LoadLocatorSpots(parkingSpots);
                 }
             }
         });
@@ -285,17 +336,86 @@ public class Controller implements Initializable {
             // TODO: Add back ability to load layout and check if cancel (NULL)
             File file = new File(openBrowseMenu());
             image = new Image(file.toURI().toString());
+            layoutSaveName = file.getAbsolutePath().substring(file.getAbsolutePath().lastIndexOf("\\")+1).replaceFirst("[.][^.]+$", "");;
             updateAllLayouts(image);
             loadParkingSpots(saveLoadLayout, parkingSpots, layout_anchor_pane, layoutSaveName + "_savelocations.txt",true);
             loadParkingSpots(saveLoadLayout, parkingSpots, editor_anchor_pane, layoutSaveName + "_savelocations.txt", false);
             loadParkingSpots(saveLoadLayout, parkingSpots, locator_anchor_pane, layoutSaveName + "_savelocations.txt", false);
+
+            File f = new File(layoutSaveName + "_savespots.txt");
+            if(f.exists() && !f.isDirectory()) {
+                LoadEditorSpots(parkingSpots);
+                LoadLocatorSpots(parkingSpots);
+            }
         });
     }
 
-    private void HightlightSpot(ArrayList<ParkingSpot> parkingSpots) {
+    private void SelectInitialWorkbook(SQLDatabase sqlDatabase, Button utilities_load_database_button, Button utilities_merge_database_button) {
+        utilities_load_database_button.setOnMouseClicked(e -> {
+            String db_loc = openWorkbookBrowseMenu();
+            if (db_loc.contains("NEW") || db_loc.contains("USED")){
+                utilities_console_area.setText(utilities_console_area.getText() + "Parsing workbook... Please Wait\n");
+                sqlDatabase.xlsxToSQL(db_loc);
+                utilities_console_area.setText(utilities_console_area.getText() + "Initial Workbook Loaded\n");
+                utilities_load_database_button.setDisable(true);
+                utilities_merge_database_button.setDisable(false);
+            }else {
+                utilities_console_area.setText(utilities_console_area.getText() + "Invalid Workbook Selected\n");
+            }
+        });
+    }
+
+    private void VehicleIterator(ArrayList<String[]> temp2, Iterator<Vehicle> iter) {
+        while (iter.hasNext()) {
+            Vehicle str = iter.next();
+            for (String[] entry : temp2){
+                if (str.getVehicleID().equals(entry[7]))
+                    iter.remove();
+            }
+        }
+    }
+
+    public void LoadEditorSpots(ArrayList<ParkingSpot> parkingSpots){
+        ArrayList<String[]> temp2 = new SaveLoadLayout().LoadLayout(layoutSaveName + "_savespots.txt");
+        ReloadSpots(parkingSpots, temp2, editor_anchor_pane);
+    }
+
+    public void LoadLocatorSpots(ArrayList<ParkingSpot> parkingSpots){
+        ArrayList<String[]> temp2 = new SaveLoadLayout().LoadLayout(layoutSaveName + "_savespots.txt");
+        ReloadSpots(parkingSpots, temp2, locator_anchor_pane);
+    }
+
+    private void ReloadSpots(ArrayList<ParkingSpot> parkingSpots, ArrayList<String[]> temp2, AnchorPane anchorPane) {
+        for (ParkingSpot spot : parkingSpots){
+            for (String[] save : temp2){
+                if (spot.getX() == Double.parseDouble(save[0]) && spot.getY() == Double.parseDouble(save[1])){
+                    anchorPane.getChildren().remove(spot);
+                    spot.setFill(Color.BLUE);
+                    spot.setTestinfo(Arrays.toString(save));
+                    anchorPane.getChildren().add(spot);
+                } else {
+                    spot.setStroke(Color.BLACK);
+                    spot.setStrokeWidth(2);
+                    spot.setFill(Color.GREY);
+                    anchorPane.getChildren().add(spot);
+                }
+            }
+        }
+    }
+
+    private void RemoveAllRectangles(AnchorPane anchorPane){
+        List<Node> temp = getAllNodes(anchorPane);
+        for (Node n : temp){
+            if (n.toString().contains("Rectangle")) {
+                anchorPane.getChildren().remove(n);
+            }
+        }
+    }
+
+    private void HighlightSpot(ArrayList<ParkingSpot> parkingSpots) {
         for (ParkingSpot spot : parkingSpots){
             if (spot.getTestinfo() != null ){
-                if (spot.getTestinfo().substring(0, spot.getTestinfo().indexOf("|")).trim().equals(locator_search_field.getText().toUpperCase())){
+                if (spot.getTestinfo().contains(locator_search_field.getText().toUpperCase())){
                     if (lastSpotSearched != null){
                         lastSpotSearched.setStroke(Color.BLACK);
                         lastSpotSearched.setStrokeWidth(2);
@@ -529,6 +649,18 @@ public class Controller implements Initializable {
         }
     }
 
+    public boolean SearchFileForEntry(String search, String file) throws IOException {
+        Scanner txtscan = new Scanner(new File(file));
+
+        while(txtscan.hasNextLine()){
+            String str = txtscan.nextLine();
+            if(str.indexOf(search) != -1){
+                return true;
+            }
+        }
+        return false;
+    }
+
     public String updateAllLayouts(Image image){
         ImageView locator_imageview = new ImageView(image);
         locator_imageview.fitWidthProperty().bind(layout_scrollpane.widthProperty());
@@ -549,7 +681,7 @@ public class Controller implements Initializable {
         editor_anchor_pane.getChildren().add(editor_imageview);
         layout_anchor_pane.getChildren().add(layout_imageview);
 
-        return image.getUrl().substring(image.getUrl().lastIndexOf("/")+1);
+        return image.impl_getUrl().substring(image.impl_getUrl().lastIndexOf("/")+1);
     }
 
     public String openBrowseMenu(){
@@ -558,6 +690,16 @@ public class Controller implements Initializable {
         FileChooser.ExtensionFilter png = new FileChooser.ExtensionFilter("png", "*.png");
         FileChooser.ExtensionFilter jpg = new FileChooser.ExtensionFilter("jpg", "*.jpg");
         fc.getExtensionFilters().addAll(jpg, png);
+
+        // TODO: If no file is chosen nullpointed needs to be fixed
+        return fc.showOpenDialog(stage).getAbsolutePath();
+    }
+
+    public String openWorkbookBrowseMenu(){
+        stage = (Stage) layout_scrollpane.getScene().getWindow();
+        FileChooser fc = new FileChooser();
+        FileChooser.ExtensionFilter xlsx = new FileChooser.ExtensionFilter("xlsx", "*.xlsx");
+        fc.getExtensionFilters().addAll(xlsx);
 
         // TODO: If no file is chosen nullpointed needs to be fixed
         return fc.showOpenDialog(stage).getAbsolutePath();
